@@ -1,72 +1,71 @@
 package com.desafiolatam.scanfood;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
+import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
+import android.util.Log;
+import android.widget.Toast;
 
-import com.desafiolatam.scanfood.com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.Result;
 
-public class MainActivity extends AppCompatActivity {
+import me.dm7.barcodescanner.zxing.ZXingScannerView;
 
 
-    private Button scanBtn;
-    private TextView formatTxt, contentTxt;
+public class MainActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler{
+
+    private static final int RC_CAMERA_PERMISSION = 343;
+    private ZXingScannerView mScannerView;
+
+    @SuppressWarnings("all")
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //mScannerView = new ZXingScannerView(this);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
 
-        scanBtn = (Button)findViewById(R.id.scan_button);
-        formatTxt = (TextView)findViewById(R.id.scanFormat);
-        contentTxt = (TextView)findViewById(R.id.scanContent);
-
-
-        scanBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                IntentIntegrator scanIntegrator = new IntentIntegrator(MainActivity.this);
-                scanIntegrator.initiateScan();
-
-            }
-        });
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-            }
-        });
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+             startScanner();
+        } else {
+            requestPermissions(new String[]{Manifest.permission.CAMERA}, RC_CAMERA_PERMISSION);
         }
 
-        return super.onOptionsItemSelected(item);
+    }
+
+    private void startScanner(){
+        mScannerView = findViewById(R.id.scannerXz);
+        mScannerView.setResultHandler(this);
+        mScannerView.startCamera();
+    }
+
+
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (mScannerView != null) {
+            mScannerView.stopCamera();
+        }
+    }
+
+    @Override
+    public void handleResult(Result rawResult) {
+        // Do something with the result here
+        Toast.makeText(this, rawResult.getText(), Toast.LENGTH_SHORT).show();
+        Log.v("codigo", rawResult.getText());
+        Log.v("formato", rawResult.getBarcodeFormat().name());
+
+        // If you would like to resume scanning, call this method below:
+        mScannerView.resumeCameraPreview(this);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (RC_CAMERA_PERMISSION == requestCode && PackageManager.PERMISSION_GRANTED == grantResults[0]) {
+            startScanner();
+        }
     }
 }
